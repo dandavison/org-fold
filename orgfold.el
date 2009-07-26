@@ -1,3 +1,4 @@
+;;; http://www.emacswiki.org/emacs/download/orgfold.el
 ;;; orgfold.el
 ;; Copyright (C) 2009 
 
@@ -22,7 +23,6 @@
 ;; 
 
 (require 'cl)
-
 
 (defvar orgfold-saved-info-tag "saved org fold info: ")
 
@@ -89,5 +89,6 @@
 
 (defun orgfold-activate ()
   (orgfold-restore)
-  (add-hook 'before-save-hook 'orgfold-before-save nil t))
+  (org-add-hook 'before-save-hook 'orgfold-before-save nil 'local))
 
+(provide 'orgfold)
