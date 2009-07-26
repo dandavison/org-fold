@@ -18,53 +18,65 @@
 
 ;;
 ;; Proof of concept implementation of saving folding information in
-;; org buffers.
+;; org buffers. This variant saves folding information in a separate
+;; file.
 ;; 
 
 (require 'cl)
 
 
-(defvar orgfold-saved-info-tag "saved org fold info: ")
+(defun orgfold-get-fold-info-file-name ()
+  (concat (buffer-file-name) ".fold"))
 
 
 
-(defun orgfold-before-save ()
+(defun orgfold-save ()
   (save-excursion
     (goto-char (point-min))
-    (let ((index 0)
-          indices)
 
+    (let (foldstates)
       (unless (looking-at outline-regexp)
         (outline-next-visible-heading 1))
 
       (while (not (eobp))
-        (unless (some (lambda (o) (overlay-get o 'invisible))
-                      (overlays-at (line-end-position)))
-          (push index indices))
-        (outline-next-visible-heading 1)
-        (incf index))
+        (push (if (some (lambda (o) (overlay-get o 'invisible))
+                        (overlays-at (line-end-position)))
+                  t)
+              foldstates)
+        (outline-next-visible-heading 1))
 
-      (setq indices (prin1-to-string (nreverse indices)))
-
-      (goto-char (point-min))
-      (if (search-forward orgfold-saved-info-tag nil t)
-          (kill-line)
-
-        (goto-char (point-max))
-        (insert "\n\n;; don't delete these lines\n"
-                orgfold-saved-info-tag))
-
-      (insert indices "\n"))))
+      (let* ((foldfile (orgfold-get-fold-info-file-name))
+             (buffer (or (get-file-buffer foldfile)
+                         (find-file-noselect foldfile))))
+        (with-current-buffer buffer
+          (erase-buffer)
+          (prin1 (nreverse foldstates) buffer)
+          (write-file foldfile))
+        (kill-buffer buffer)))))
 
 
 (defun orgfold-restore ()
   (save-excursion
     (goto-char (point-min))
-    (let ((index 0)
-          (indices (if (search-forward orgfold-saved-info-tag nil t)
-                       (read (current-buffer)))))
-      (if (not indices)
-          (message "no saved folding information in the file")
+    (let ((foldstates
+           (let* ((foldfile (orgfold-get-fold-info-file-name))
+                  (buffer (get-file-buffer foldfile))
+                  kill result)
+             (unless buffer
+               (when (file-readable-p foldfile)
+                 (setq buffer (find-file-noselect foldfile))
+                 (setq kill t)))
+
+             (when buffer
+               (with-current-buffer buffer
+                 (goto-char (point-min))
+                 (setq result (read (current-buffer))))
+               (if kill
+                   (kill-buffer buffer))
+               result))))
+
+      (if (not foldstates)
+          (message "no saved folding information for the file")
 
         (show-all)
         (goto-char (point-min))
@@ -72,14 +84,12 @@
         (unless (looking-at outline-regexp)
           (outline-next-visible-heading 1))
 
-        (while (and indices
+        (while (and foldstates
                     (not (eobp)))
-          (if (eq index (car indices))
-              (pop indices)
+          (if (pop foldstates)
             (hide-subtree))
 
-          (outline-next-visible-heading 1)
-          (incf index))
+          (outline-next-visible-heading 1))
 
         (message "restored saved folding")))))
                   
@@ -89,5 +99,9 @@
 
 (defun orgfold-activate ()
   (orgfold-restore)
-  (add-hook 'before-save-hook 'orgfold-before-save nil t))
+  (add-hook 'kill-buffer-hook 'orgfold-kill-buffer nil t))
 
+(defun orgfold-kill-buffer ()
+  ;; don't save folding info for unsaved buffers
+  (unless (buffer-modified-p)
+    (orgfold-save)))
