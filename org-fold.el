@@ -31,18 +31,15 @@
 (defun org-fold-save ()
   (save-excursion
     (goto-char (point-min))
-
     (let (foldstates)
       (unless (looking-at outline-regexp)
         (outline-next-visible-heading 1))
-
       (while (not (eobp))
         (push (if (some (lambda (o) (overlay-get o 'invisible))
                         (overlays-at (line-end-position)))
                   t)
               foldstates)
         (outline-next-visible-heading 1))
-      
       (with-temp-file (org-fold-get-fold-info-file-name)
 	(prin1 (nreverse foldstates) (current-buffer))))))
 
@@ -55,24 +52,16 @@
 		(with-temp-buffer
 		  (insert-file-contents foldfile)
  		  (read (current-buffer))))))
-
-      (if (not foldstates)
-          (message "no saved folding information for the file")
-
-        (show-all)
+      (when foldstates
+	(show-all)
         (goto-char (point-min))
-
         (unless (looking-at outline-regexp)
           (outline-next-visible-heading 1))
-
-        (while (and foldstates
-                    (not (eobp)))
+        (while (and foldstates (not (eobp)))
           (if (pop foldstates)
-            (hide-subtree))
-
+	      (hide-subtree))
           (outline-next-visible-heading 1))
-
-        (message "restored saved folding")))))
+        (message "Restored saved folding state")))))
 
 (add-hook 'org-mode-hook 'org-fold-activate)
 
