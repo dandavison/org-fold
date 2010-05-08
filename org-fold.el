@@ -1,4 +1,4 @@
-;;; orgfold.el
+;;; org-fold.el
 ;; Copyright (C) 2009 
 
 ;; This file is free software; you can redistribute it and/or modify
@@ -25,10 +25,10 @@
 (require 'cl)
 (require 'org)
 
-(defun orgfold-get-fold-info-file-name ()
+(defun org-fold-get-fold-info-file-name ()
   (concat (buffer-file-name) ".fold"))
 
-(defun orgfold-save ()
+(defun org-fold-save ()
   (save-excursion
     (goto-char (point-min))
 
@@ -43,13 +43,13 @@
               foldstates)
         (outline-next-visible-heading 1))
       
-      (with-temp-file (orgfold-get-fold-info-file-name)
+      (with-temp-file (org-fold-get-fold-info-file-name)
 	(prin1 (nreverse foldstates) (current-buffer))))))
 
-(defun orgfold-restore ()
+(defun org-fold-restore ()
   (save-excursion
     (goto-char (point-min))
-    (let* ((foldfile (orgfold-get-fold-info-file-name))
+    (let* ((foldfile (org-fold-get-fold-info-file-name))
 	   (foldstates
 	    (if (file-readable-p foldfile)
 		(with-temp-buffer
@@ -74,15 +74,15 @@
 
         (message "restored saved folding")))))
 
-(add-hook 'org-mode-hook 'orgfold-activate)
+(add-hook 'org-mode-hook 'org-fold-activate)
 
-(defun orgfold-activate ()
-  (orgfold-restore)
-  (add-hook 'kill-buffer-hook 'orgfold-kill-buffer nil t))
+(defun org-fold-activate ()
+  (org-fold-restore)
+  (add-hook 'kill-buffer-hook 'org-fold-kill-buffer nil t))
 
-(defun orgfold-kill-buffer ()
+(defun org-fold-kill-buffer ()
   ;; don't save folding info for unsaved buffers
   (unless (buffer-modified-p)
-    (orgfold-save)))
+    (org-fold-save)))
 
-(provide 'orgfold)
+(provide 'org-fold)
