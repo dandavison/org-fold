@@ -23,12 +23,10 @@
 ;; 
 
 (require 'cl)
-
+(require 'org)
 
 (defun orgfold-get-fold-info-file-name ()
   (concat (buffer-file-name) ".fold"))
-
-
 
 (defun orgfold-save ()
   (save-excursion
@@ -75,8 +73,6 @@
           (outline-next-visible-heading 1))
 
         (message "restored saved folding")))))
-                  
-
 
 (add-hook 'org-mode-hook 'orgfold-activate)
 
@@ -88,3 +84,5 @@
   ;; don't save folding info for unsaved buffers
   (unless (buffer-modified-p)
     (orgfold-save)))
+
+(provide 'orgfold)
