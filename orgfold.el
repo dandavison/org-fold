@@ -44,36 +44,19 @@
                   t)
               foldstates)
         (outline-next-visible-heading 1))
-
-      (let* ((foldfile (orgfold-get-fold-info-file-name))
-             (buffer (or (get-file-buffer foldfile)
-                         (find-file-noselect foldfile))))
-        (with-current-buffer buffer
-          (erase-buffer)
-          (prin1 (nreverse foldstates) buffer)
-          (write-file foldfile))
-        (kill-buffer buffer)))))
-
+      
+      (with-temp-file (orgfold-get-fold-info-file-name)
+	(prin1 (nreverse foldstates) (current-buffer))))))
 
 (defun orgfold-restore ()
   (save-excursion
     (goto-char (point-min))
-    (let ((foldstates
-           (let* ((foldfile (orgfold-get-fold-info-file-name))
-                  (buffer (get-file-buffer foldfile))
-                  kill result)
-             (unless buffer
-               (when (file-readable-p foldfile)
-                 (setq buffer (find-file-noselect foldfile))
-                 (setq kill t)))
-
-             (when buffer
-               (with-current-buffer buffer
-                 (goto-char (point-min))
-                 (setq result (read (current-buffer))))
-               (if kill
-                   (kill-buffer buffer))
-               result))))
+    (let* ((foldfile (orgfold-get-fold-info-file-name))
+	   (foldstates
+	    (if (file-readable-p foldfile)
+		(with-temp-buffer
+		  (insert-file-contents foldfile)
+ 		  (read (current-buffer))))))
 
       (if (not foldstates)
           (message "no saved folding information for the file")
